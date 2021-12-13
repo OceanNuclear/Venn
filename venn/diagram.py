@@ -24,6 +24,32 @@ def _equidistribute_points_on_circle(N):
     angles = np.arange(N+1)/N * tau
     return ary([cos(angles), sin(angles)]).T
 
+def _spline_polygon_into_rounded_polygon(polygon, num_pts_between_vertex):
+    """
+    Parameters
+    ----------
+    polygon : a 2D array of polygon with N vertices, with shape (N+1, 2).
+                Note that the start and end point are expected to be duplicated.
+    num_pts_between_vertex : how many interpolated points to put between each vertex pair.
+    Returns
+    -------
+    a 2D array of polygon verticies, with shape (N*num_pts_between_vertex+1, 2)
+    """
+    from scipy.interpolate import interp1d
+    x_coords, y_coords = [], []
+
+    for i, (p1, p2) in enumerate(zip(polygon[:-1], polygon[1:])):
+        p0 = polygon[i-1] if (i-1)>=0 else polygon[-2] # if i==0, choose the PENULTIMATE point to skip over the duplicated point.
+        p3 = polygon[i+2] if (i+2)<(len(polygon)-1) else polygon[(i+2+1)%len(polygon)]
+        print(i, f"{p0=},\n{p1=},\n{p2=},\n{p3=}")
+        line_smooth = interp1d([0,1,2,3], ary([p0, p1, p2, p3]).T, kind='cubic', )
+        sample_locations = np.linspace(1, 2, num_pts_between_vertex)
+        interpolated_coords = line_smooth(sample_locations) # get the interpolated coordinates
+
+        x_coords.extend(interpolated_coords[0]), y_coords.extend(interpolated_coords[1])
+
+    return ary([x_coords, y_coords]).T
+
 class PolygonVennDiagram():
     """A Venn diagram with sharp edges"""
     def __init__(self, N):
@@ -35,14 +61,14 @@ class PolygonVennDiagram():
         """returns N lists of 2D coordinates"""
         if self.N == 1:
             # A single triangle
-            shape = _equidistribute_points_on_circle(3)
-            offset_angle, scale_factor = 0, 1
-            # TODO: deal with this edge case
+            sorted_to_components = [_equidistribute_points_on_circle(3)]
         elif self.N == 2:
             # return a rhombus, rotated 
-            shape = ary([[0.5, 0], [0, 1], [-0.5, 0], [0, -1], [0.5, 0]])
-            offset_angle, scale_factor = pi/2, 2
-            # TODO: deal with this edge case
+            sorted_to_components = [
+            ary([[2,0], [0,1], [-0.5,0], [0,-1], [2,0]]),
+            ary([[-2,0], [0,-1], [0.5,0], [0,1], [-2,0]])
+            ]
+
         else:
             shape = _equidistribute_points_on_circle(self.N)
             offset_angle, scale_factor = pi/self.N, cos(pi/self.N) # isoceles triangle with unique angle = tau/N and leg=1 has height = cos(pi/self.N)
@@ -72,8 +98,26 @@ class PolygonVennDiagram():
         ax.set_xticks([]), ax.set_yticks([])
         return ax, ax.plot(xcoords, ycoords)
 
+class EqualizedVennDiagram():
+    def polygon_coordinates(self):
+        pass
+
+class RoundedVennDiagram(PolygonVennDiagram):
+    def __init__(self, N):
+        super().__init__(N)
+
+    def polygon_coordinates(self, num_pts_between_vertex=100):
+        list_of_polygon_vertices = super().polygon_coordinates()
+        new_coords = [_spline_polygon_into_rounded_polygon(coords, num_pts_between_vertex) for coords in list_of_polygon_vertices]
+        return new_coords
+
 if __name__=="__main__":
-    # coords = PolygonVennDiagram(5).polygon_coordinates()
-    ax, lines = PolygonVennDiagram(16).plot()
     import matplotlib.pyplot as plt
+
+    # coords = PolygonVennDiagram(5).polygon_coordinates()
+    # plt.plot(*coords[0][:].T)
+    # plt.plot(*_spline_polygon_into_rounded_polygon(coords[0], 100).T)
+    # plt.show()
+
+    ax, lines = RoundedVennDiagram(5).plot()
     plt.show()
