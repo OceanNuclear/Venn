@@ -1,5 +1,8 @@
-"""Makes a Venn diagram"""
-from numpy import pi, sin, cos, array as ary
+"""Makes a Pseudo-Venn diagram:
+Failed attempt at making a venn diagram using regular inscribed polygons.
+Instead this became a side projects to generate artistic logos.
+"""
+from numpy import pi, sin, cos, array as ary, sqrt
 import numpy as np
 tau = pi*2
 
@@ -41,7 +44,6 @@ def _spline_polygon_into_rounded_polygon(polygon, num_pts_between_vertex):
     for i, (p1, p2) in enumerate(zip(polygon[:-1], polygon[1:])):
         p0 = polygon[i-1] if (i-1)>=0 else polygon[-2] # if i==0, choose the PENULTIMATE point to skip over the duplicated point.
         p3 = polygon[i+2] if (i+2)<(len(polygon)-1) else polygon[(i+2+1)%len(polygon)]
-        print(i, f"{p0=},\n{p1=},\n{p2=},\n{p3=}")
         line_smooth = interp1d([0,1,2,3], ary([p0, p1, p2, p3]).T, kind='cubic', )
         sample_locations = np.linspace(1, 2, num_pts_between_vertex)
         interpolated_coords = line_smooth(sample_locations) # get the interpolated coordinates
@@ -83,9 +85,6 @@ class PolygonVennDiagram():
                 indices = np.vstack([ary([[i, component] for i in range(self.N)]), ary([[self.N-1-i, (i+component+1)%self.N] for i in range(self.N)])])
                 sorted_to_components.append(layered_coordinates[indices.T[0], indices.T[1]])
         return sorted_to_components
-    # the increase in area between successive areas is 1/cos(pi/N)**2 -1.
-    # I would prefer it if a different shape is chosen such that this is kept constant, i.e. independent of N.
-    # Or better yet, the area of each region should be the same.
 
     def plot(self, ax=None):
         import matplotlib.pyplot as plt
@@ -96,13 +95,43 @@ class PolygonVennDiagram():
         ycoords = ary([p[:,1] for p in polygons]).T
         ax.set_aspect(1)
         ax.set_xticks([]), ax.set_yticks([])
-        return ax, ax.plot(xcoords, ycoords)
+        colours = plt.cm.rainbow(np.linspace(0, 1, self.N))
+        lines = []
+        for x, y, c in zip(xcoords.T, ycoords.T, colours):
+            lines.append(ax.plot(x, y, color=c)[0])
+        return ax, lines
+        # return ax, ax.plot(xcoords, ycoords, )
 
-class EqualizedVennDiagram():
+class EqualizedVennDiagram(PolygonVennDiagram):
     def polygon_coordinates(self):
-        pass
+        if self.N <=2:
+            return super().polygon_coordinates()
+        else:
+            # take N=4 as an example.
+            # The outermost ring (ring[0]) has total area = F[0]**2=1, net area = 1-F[1]**2 which will be evenly shared among 5 regions.
+            # ring[1] has total area = F[1]**2, net area = F[2]**2-F[1]**2 which will be evenly shared among 5 regions.
+            # ring [3] has total area = F[3]**2 = net area, which will be evenly shared among 1 region.
+            # total number of regions = N*(N-1) + 1
+            area_of_each_region = 1/(self.N*(self.N-1)+1)
+            scale_factor = [sqrt(area_of_each_region)]
+            for n in range(self.N-1):
+                scale_factor.append(sqrt(area_of_each_region*self.N + scale_factor[-1]**2))
+            F = scale_factor[::-1]
+            shape = _equidistribute_points_on_circle(self.N)
+            offset_angle = pi/self.N
 
-class RoundedVennDiagram(PolygonVennDiagram):
+            layered_coordinates = []
+            for layer in range(self.N):
+                layered_coordinates.append(_rotate_and_scale(shape, offset_angle*layer, F[layer]))
+            layered_coordinates = ary(layered_coordinates)
+
+            sorted_to_components = []
+            for component in range(self.N):
+                indices = np.vstack([ary([[i, component] for i in range(self.N)]), ary([[self.N-1-i, (i+component+1)%self.N] for i in range(self.N)])])
+                sorted_to_components.append(layered_coordinates[indices.T[0], indices.T[1]])
+        return sorted_to_components
+
+class RoundedVennDiagram(EqualizedVennDiagram):
     def __init__(self, N):
         super().__init__(N)
 
@@ -119,5 +148,6 @@ if __name__=="__main__":
     # plt.plot(*_spline_polygon_into_rounded_polygon(coords[0], 100).T)
     # plt.show()
 
-    ax, lines = RoundedVennDiagram(5).plot()
+    # ax, lines = EqualizedVennDiagram(18).plot()
+    ax, lines = RoundedVennDiagram(9).plot()
     plt.show()
