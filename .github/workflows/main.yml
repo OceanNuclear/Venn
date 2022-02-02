@@ -36,5 +36,5 @@ jobs:
 
     - name: Test with PyTest
       run: |
-        python3 -m unittest tests/
+        python3 -m unittest tests/test_*.py
 
