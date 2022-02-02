@@ -5,7 +5,7 @@ from numpy import pi
 
 tau = pi * 2
 from numpy import array as ary
-from venn.diagram import _rotate_and_scale
+from venn.inscribed_polygons import _rotate_and_scale
 
 
 class TestPolygonDiagram(unittest.TestCase):
