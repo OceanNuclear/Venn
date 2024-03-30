@@ -1,0 +1,42 @@
+There are many different types of gray codes (in the more general definition of the word Gray code), all of which are hamiltonian paths. However, NONE of them can be drawn as a contiguous path on the Venn diagram.
+
+Consider the 5-set Venn diagram, for example. It is easy to trace out any arbitrary hamiltonian path (e.g. Hamiltonian.png, which uses:
+ABCDE
+-----
+1    
+1  1 
+11 1 
+11   
+ 1   
+ 1  1
+11  1
+11 11
+1  11
+1   1
+    1
+  1 1
+1 1 1
+1 111
+11111
+111 1
+ 11 1
+ 11  
+111  
+1111 
+ 111 
+ 1111
+  111
+   11
+ 1 11
+ 1 1 
+   1 
+  11 
+1 11 
+1 1  
+  1  
+) that visits all combination of sets.
+I don't have the patience to draw a 5-bit Lucal-code (a famous type of gray code) path over a 5-bit, so the following example will have to do to convince you:
+    Intead I drew the 4-bit Lucal code over a subset of the 5-set Venn diagram (Gray_code_Venn.png), which ended up requireing some worm-holing across the diagram to complete the path as instructed. I hope this sufficiently illustrates how not all gray code can draw a continuous path on the Venn diagram.
+
+An added bonus on "nice diagrams created by thinking about gray codes":
+    As we advance in gray codes, we make these self-repeating paths that repeats in larger scales, along the integer number line (Gray_code_number_line_arcs.svg).
